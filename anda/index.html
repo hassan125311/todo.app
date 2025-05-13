@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Todo App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .input-group {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px 0 0 4px;
+      outline: none;
+    }
+    .input-group button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .input-group button:hover {
+      background: #0056b3;
+    }
+    ul {
+      list-style: none;
+    }
+    li {
+      background: #fafafa;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    li.completed {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .actions button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 10px;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 15px; }
+      .input-group input, .input-group button { font-size: 14px; }
+      li { font-size: 14px; }
+    }
+    @media (min-width: 601px) and (max-width: 1024px) {
+      .container { max-width: 700px; }
+      .input-group input, .input-group button { font-size: 18px; }
+    }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>My TODO List</h1>
+    <div class="input-group">
+      <input type="text" id="todo-input" placeholder="Add a new task..." />
+      <button id="add-btn">Add</button>
+    </div>
+    <ul id="todo-list"></ul>
+  </div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1vtqJzqPpcUebom37jez75HWCDtm2uD8",
+      authDomain: "todoapp-6d154.firebaseapp.com",
+      projectId: "todoapp-6d154",
+      storageBucket: "todoapp-6d154.appspot.com",
+      messagingSenderId: "522681680755",
+      appId: "1:522681680755:web:48b9adc6bae41954a03b06",
+      measurementId: "G-XG4KNEHNRT",
+      databaseURL: "https://todoapp-6d154-default-rtdb.firebaseio.com/"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const input = document.getElementById('todo-input');
+    const addBtn = document.getElementById('add-btn');
+    const list = document.getElementById('todo-list');
+
+    // Create Todo UI Item
+    function createTodoItem(id, text, completed) {
+      const li = document.createElement('li');
+      li.textContent = text;
+      if (completed) li.classList.add('completed');
+
+      const actions = document.createElement('div');
+      actions.classList.add('actions');
+
+      const doneBtn = document.createElement('button');
+      doneBtn.innerHTML = '✔';
+      doneBtn.title = 'Mark as done';
+      doneBtn.onclick = () => {
+        li.classList.toggle('completed');
+        const isDone = li.classList.contains('completed');
+        db.ref(`todos/${id}`).update({ completed: isDone });
+      };
+
+      const delBtn = document.createElement('button');
+      delBtn.innerHTML = '🗑';
+      delBtn.title = 'Delete task';
+      delBtn.onclick = () => {
+        db.ref(`todos/${id}`).remove();
+        list.removeChild(li);
+      };
+
+      actions.append(doneBtn, delBtn);
+      li.appendChild(actions);
+      return li;
+    }
+
+    // Load existing todos
+    db.ref("todos").on("value", snapshot => {
+      list.innerHTML = '';
+      snapshot.forEach(child => {
+        const { task, completed } = child.val();
+        const li = createTodoItem(child.key, task, completed);
+        list.appendChild(li);
+      });
+    });
+
+    // Add new todo
+    addBtn.addEventListener('click', () => {
+      const text = input.value.trim();
+      if (!text) return;
+
+      const newTodo = {
+        task: text,
+        completed: false,
+        createdAt: Date.now()
+      };
+
+      db.ref("todos").push(newTodo);
+      input.value = '';
+      input.focus();
+    });
+
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') addBtn.click();
+    });
+  </script>
+</body>
+</html>
